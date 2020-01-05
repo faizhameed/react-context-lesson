@@ -14,28 +14,27 @@ import Header from "./components/header/header.component";
 import currentUserContext from "./context/currentUser/currentUser.context";
 import { auth, createUserProfileDocument } from "./firebase/firebase.utils";
 
-import { setCurrentUser } from "./redux/user/user.actions";
-import { selectCurrentUser } from "./redux/user/user.selectors";
-
 class App extends React.Component {
   unsubscribeFromAuth = null;
-
+  state = {
+    currentUser: null
+  };
   componentDidMount() {
-    const { setCurrentUser } = this.props;
-
     this.unsubscribeFromAuth = auth.onAuthStateChanged(async userAuth => {
       if (userAuth) {
         const userRef = await createUserProfileDocument(userAuth);
 
         userRef.onSnapshot(snapShot => {
-          setCurrentUser({
-            id: snapShot.id,
-            ...snapShot.data()
+          this.setState({
+            currentUser: {
+              id: snapShot.id,
+              ...snapShot.data()
+            }
           });
         });
       }
 
-      setCurrentUser(userAuth);
+      this.setState({ currentUser: userAuth });
     });
   }
 
@@ -46,7 +45,7 @@ class App extends React.Component {
   render() {
     return (
       <div>
-        <currentUserContext.Provider>
+        <currentUserContext.Provider value={this.state.currentUser}>
           <Header />
         </currentUserContext.Provider>
         <Switch>
@@ -57,7 +56,7 @@ class App extends React.Component {
             exact
             path="/signin"
             render={() =>
-              this.props.currentUser ? (
+              this.state.currentUser ? (
                 <Redirect to="/" />
               ) : (
                 <SignInAndSignUpPage />
@@ -70,12 +69,4 @@ class App extends React.Component {
   }
 }
 
-const mapStateToProps = createStructuredSelector({
-  currentUser: selectCurrentUser
-});
-
-const mapDispatchToProps = dispatch => ({
-  setCurrentUser: user => dispatch(setCurrentUser(user))
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(App);
+export default App;
